@@ -1,0 +1,16 @@
+# Built models for each classfier
+models/
+
+# The folder includes prediction results of models
+predictions/
+
+# Embeddings folder
+embeddings/
+
+# Result folder
+result/
+
+
+Utils/__pycache__/
+
+
