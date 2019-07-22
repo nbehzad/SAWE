@@ -5,7 +5,7 @@ from keras import regularizers
 from keras.optimizers import Adam
 
 
-def create_cnn2(weights, sequence_length, drop=0.5, output_dim=2):
+def create_cnn(weights, sequence_length, drop=0.5, output_dim=2):
 
     vocabulary_size = weights.shape[0]
     embedding_dim = weights.shape[1]
@@ -41,75 +41,13 @@ def create_cnn2(weights, sequence_length, drop=0.5, output_dim=2):
                    bias_regularizer=regularizers.l2(0.01),
                    activation='softmax')(dropout)
 
-    # this creates a model that includes
+
     model = Model(inputs=inputs, outputs=output)
     adam = Adam(lr=1e-4, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
     if output_dim == 2:
         model.compile(optimizer=adam, loss='binary_crossentropy', metrics=['accuracy'])
     else:
         model.compile(optimizer=adam, loss='categorical_crossentropy', metrics=['accuracy'])
-
-    print(model.summary())
-    return model
-
-
-def create_cnn(weights, max_length, hidden_layer_dim=300,
-               dropout=.5, output_dim=2, act_func='softmax'):
-    print('CNN model with WE dim %d' % weights.shape[1])
-    print('hidden layer dim %d' % hidden_layer_dim)
-    print('dropout %.2f' % dropout)
-    print('output dim %d' % output_dim)
-    print('matrix shape [%d * %d]' % (weights.shape[0], weights.shape[1]))
-
-    # Convolutional model
-    filter_sizes = (2, 3, 4, 5)
-    num_filters = 100
-
-    graph_in = Input(shape=(max_length, len(weights[0])))
-    convs = []
-    for fsz in filter_sizes:
-        conv = Convolution1D(nb_filter=num_filters,
-                             filter_length=fsz,
-                             border_mode='valid',
-                             activation='relu',
-                             subsample_length=1)(graph_in)
-        pool = MaxPooling1D(pool_length=2)(conv)
-        flatten = Flatten()(pool)
-        convs.append(flatten)
-
-    out = Concatenate()(convs)
-    graph = Model(input=graph_in, output=out)
-    print(graph.summary())
-
-    # Full model
-    model = Sequential()
-    model.add(Embedding(output_dim=weights.shape[1],
-                        input_dim=weights.shape[0],
-                        input_length=max_length,
-                        weights=[weights],
-                        #embeddings_regularizer=regularizers.l2(0.01),
-                        trainable=False))
-    model.add(graph)
-    model.add(Dropout(dropout))
-    '''
-    model.add(Dense(hidden_layer_dim,
-                    kernel_regularizer=regularizers.l2(0.01),
-                    bias_regularizer=regularizers.l2(0.01),
-                    activation='relu'))
-    model.add(Dense(output_dim, activation=act_func))
-    '''
-    model.add(Dense(output_dim,
-                    kernel_regularizer=regularizers.l2(0.01),
-                    bias_regularizer=regularizers.l2(0.01),
-                    activation=act_func))
-
-
-    if output_dim == 2:
-        model.compile('adam', 'binary_crossentropy',
-                      metrics=['accuracy'])
-    else:
-        model.compile('adam', 'categorical_crossentropy',
-                      metrics=['accuracy'])
 
     print(model.summary())
     return model
@@ -189,17 +127,11 @@ def create_bilstm_emtrainable(lstm_dim=150, output_dim=2, dropout=.5, weights=No
     return model
 
 
-def create_MLP(input_dim, output_dim=2, dropout=0.5):
-    model_name = 'MLP'
+def create_LR(input_dim, output_dim=2, dropout=0.5):
+    model_name = 'LR'
     print(model_name + ' model with feature size: %d, output: %d' % (input_dim, output_dim))
 
     model = Sequential()
-    #model.add(Dense(input_dim * 2, input_dim=input_dim, activation='relu'))
-    #model.add(Dropout(dropout))
-
-    #model.add(Dense(output_dim, activation='sigmoid'))
-    #model.compile('adam', 'mean_squared_error', metrics=['accuracy'])
-
     model.add(Dense(output_dim, input_dim=input_dim, activation='softmax'))
     if output_dim == 2:
         model.compile('adam', 'binary_crossentropy',

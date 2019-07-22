@@ -120,7 +120,7 @@ def run_classification(model_name, em_file):
 
         print('For dataset %s: Vocab size=%d and UNK size = %d ' % (name, len(vocab), unk))
 
-        if not model_name.startswith('mlp'):
+        if not model_name.startswith('lr'):
             embedding_matrix, word2index = get_embedding_matrix(wordvecs, k=dim)
 
             print('Converting and Padding dataset...')
@@ -141,13 +141,13 @@ def run_classification(model_name, em_file):
                                          verbose=1, save_best_only=True, mode='auto')
 
             if model_name.startswith('cnn'):
-                clf = create_cnn2(embedding_matrix, max_length, DROPOUT, output_dim)
+                clf = create_cnn(embedding_matrix, max_length, DROPOUT, output_dim)
             elif model_name.startswith('lstm'):
                 clf = create_lstm(lstm_dim=LSTM_DIM, output_dim=output_dim, weights=embedding_matrix, dropout=DROPOUT)
             elif model_name.startswith('bilstm'):
                 clf = create_bilstm(lstm_dim=LSTM_DIM, output_dim=output_dim, weights=embedding_matrix, dropout=DROPOUT)
-            elif model_name.startswith('mlp'):
-                clf = create_MLP(input_dim=dim*3, output_dim=output_dim, dropout=DROPOUT)
+            elif model_name.startswith('lr'):
+                clf = create_LR(input_dim=dim*3, output_dim=output_dim, dropout=DROPOUT)
             
             h = clf.fit(dataset._Xtrain, dataset._ytrain, validation_data=[dataset._Xdev, dataset._ydev],
                         batch_size=BATCH_SIZE, epochs=EPOCH_COUNT, verbose=VERBOSE, callbacks=[checkpoint])
@@ -187,18 +187,6 @@ def run_classification(model_name, em_file):
             else:
                 average = 'macro'
 
-            '''
-            # The official metric for semeval 2013 is macro-F over positive and negative classes
-            if name == 'semeval' and dataset._ytest.shape[1] == 3:
-                pn_y = np.hstack((np.array(dataset._ytest[:, 0], ndmin=2).transpose()
-                                  , np.array(dataset._ytest[:, 2], ndmin=2).transpose()))
-                pn_pred = np.hstack((np.array(pred[:, 0], ndmin=2).transpose()
-                                     , np.array(pred[:, 2], ndmin=2).transpose()))
-                mm = MyMetrics(pn_y, pn_pred, labels=[0, 1], average=average)
-            else:
-                mm = MyMetrics(dataset._ytest, pred, labels=labels, average=average)
-            '''
-
             mm = MyMetrics(dataset._ytest, pred, labels=labels, average=average)
             acc, precision, recall, macro_f1 = mm.get_scores()
             dataset_results.append([acc, precision, recall, macro_f1])
@@ -237,13 +225,9 @@ def run_experiment(model_name, em_file, output_dir):
 
 
 def multiple_glove_experiment(model_name):
-    models = [model_name, model_name + '-sawe-conc30', model_name + '-sawe-conc100', model_name +
-              '-sawe-pca30', model_name + '-sawe-pca100']
+    models = [model_name + '-sawe-pca30', model_name + '-sawe-pca100']
     output = './result/'
-    embeddings = ['./embeddings/glove-reduced.txt',
-                 './embeddings/senti-embedding/sawe-tanh-conc-30-glove.txt',
-                 './embeddings/senti-embedding/sawe-tanh-conc-100-glove.txt',
-                 './embeddings/senti-embedding/sawe-tanh-pca-30-glove.txt',
+    embeddings = ['./embeddings/senti-embedding/sawe-tanh-pca-30-glove.txt',
                  './embeddings/senti-embedding/sawe-tanh-pca-100-glove.txt']
 
     index = 0
@@ -254,13 +238,9 @@ def multiple_glove_experiment(model_name):
 
 
 def multiple_w2v_experiment(model_name):
-    models = [model_name, model_name + '-w2v-sawe-conc30', model_name + '-w2v-sawe-conc100', model_name +
-              '-w2v-sawe-pca30', model_name + '-w2v-sawe-pca100']
+    models = [model_name + '-w2v-sawe-pca30', model_name + '-w2v-sawe-pca100']
     output = './result/'
-    embeddings = ['./embeddings/w2v-reduced.txt',
-                './embeddings/senti-embedding/sawe-tanh-conc-30-w2v.txt',
-                 './embeddings/senti-embedding/sawe-tanh-conc-100-w2v.txt',
-                 './embeddings/senti-embedding/sawe-tanh-pca-30-w2v.txt',
+    embeddings = ['./embeddings/senti-embedding/sawe-tanh-pca-30-w2v.txt',
                  './embeddings/senti-embedding/sawe-tanh-pca-100-w2v.txt']
     index = 0
     for em in embeddings:
@@ -272,16 +252,13 @@ def multiple_w2v_experiment(model_name):
 
 def main(args):
     parser = argparse.ArgumentParser(description='test senti-embeddings on several datasets')
-    parser.add_argument('-model', help='The classification model, it can be one of cnn, bilstm, lstm, svm, mlp', default='bilstm')
-    parser.add_argument('-emb', help='location of embeddings', default='/home/behzad/Projects/c-word2vec/wiki-em/12-wiki-lex-r-w2v-sub04.txt')
+    parser.add_argument('-model', help='The classification model, it can be one of cnn, bilstm, lstm, lr', default='bilstm')
+    parser.add_argument('-emb', help='location of embeddings', default='./embeddings/senti-embedding/sawe-tanh-pca-100-glove.txt')
     parser.add_argument('-output', help='output file for printing results', default='./result/')
 
     args = vars(parser.parse_args())
     model = args['model']
-    model = 'mlp-RL-glove-repeat'
     embedding = args['emb']
-    embedding = './c-word2vec/output/12-wiki-sst-sem-lex-r-w2v.txt'
-    embedding = './embeddings/glove-reduced.txt'
     output = args['output']
 
     print('Experiment over %s' % embedding)
